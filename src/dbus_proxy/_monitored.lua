@@ -22,7 +22,7 @@ local lgi = require("lgi")
 local Gio = lgi.Gio
 local GObject = lgi.GObject
 
-local Proxy = require("dbus_proxy._proxy")
+local Proxy = require("external.dbus_proxy.src.dbus_proxy._proxy")
 
 local monitored = {}
 

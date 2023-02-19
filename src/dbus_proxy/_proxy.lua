@@ -21,6 +21,7 @@ local table = table
 local unpack = unpack or table.unpack -- luacheck: globals unpack
 
 local lgi = require("lgi")
+local gdebug = require("gears.debug")
 
 local DBusProxy = lgi.Gio.DBusProxy
 local DBusProxyFlags = lgi.Gio.DBusProxyFlags
@@ -31,7 +32,7 @@ local GVariant = lgi.GLib.Variant
 
 local _DEFAULT_TIMEOUT = -1
 
-local variant = require("dbus_proxy._variant")
+local variant = require("external.dbus_proxy.src.dbus_proxy._variant")
 
 --[[-- A proxy object
 
@@ -401,12 +402,16 @@ local function generate_fields(proxy)
   local xml_data_str, err = introspect(proxy)
 
   if not xml_data_str then
-    error(
-      string.format(
-        "Failed to introspect object '%s'\nerror: %s\ncode: %s",
-        proxy.name, err or "<unknown>", err.code or "<unknown>"
-      )
-    )
+    gdebug.print_warning(string.format(
+      "Failed to introspect object '%s'\nerror: %s\ncode: %s",
+      proxy.name, err or "<unknown>", err.code or "<unknown>"
+    ))
+    -- error(
+    --   string.format(
+    --     "Failed to introspect object '%s'\nerror: %s\ncode: %s",
+    --     proxy.name, err or "<unknown>", err.code or "<unknown>"
+    --   )
+    -- )
   end
 
   local node = DBusNodeInfo.new_for_xml(xml_data_str)
