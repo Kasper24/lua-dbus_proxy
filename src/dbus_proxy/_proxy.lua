@@ -1,13 +1,10 @@
 --[[
   Copyright 2017 Stefano Mazzucco
   Copyright 2018 - 2020 Stefano Mazzucco and contributors
-
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
-
   http://www.apache.org/licenses/LICENSE-2.0
-
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +18,6 @@ local table = table
 local unpack = unpack or table.unpack -- luacheck: globals unpack
 
 local lgi = require("lgi")
-local gdebug = require("gears.debug")
 
 local DBusProxy = lgi.Gio.DBusProxy
 local DBusProxyFlags = lgi.Gio.DBusProxyFlags
@@ -34,56 +30,45 @@ local _DEFAULT_TIMEOUT = -1
 
 local variant = require("external.dbus_proxy.src.dbus_proxy._variant")
 
---[[-- A proxy object
+local gdebug = require("gears.debug")
 
+--[[-- A proxy object
 Proxy objects act as intermediares between your lua code and DBus.  All the
 properties, methods and signals of the object are exposed.  Be aware that
 properties, methods and signals will likely be written in `CamelCase` since
 this it the convention in DBus (e.g. `proxy.SomeProperty` or
 `proxy:SomeMethod()`). Please refer to the documentation of the object you are
 proxying for more information.
-
 When a property in a DBus object changes, the same change is reflected in the
 proxy.  Similarly, when a signal is emitted, the proxy object is notified
 accordingly.
-
 Additionally, the following fields reflect the corresponding [`g-*`
 properties](https://developer.gnome.org/gio/2.50/GDBusProxy.html#GDBusProxy.properties):
-
 - `connection`: g-connection
 - `flags`: g-flags
 - `interface`: g-interface-name
 - `name`: g-name
 - `name_owner`: g-name-owner
 - `object_path`: g-object-path
-
 Some proxy methods may report errors (see the documentation of the object your
 are proxying). In that case you can check them with the usual error-checking
 pattern as shown in the usage example.
-
 For all this to work though, the code must run inside [GLib's main event
 loop](https://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html#glib-The-Main-Event-Loop.description). This
 can be achieved in two ways:
-
 1. Create a
    [main loop](https://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html#GMainLoop)
    and run it when the application starts:
-
-
            local GLib = require("lgi").GLib
            -- Set up the application, then do:
            local main_loop = GLib.MainLoop()
            main_loop:run()
            -- use main_loop:quit() to stop the main loop.
-
-
 2. Use more fine-grained control by running an iteration at a time from
    the
    [main context](https://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html#GMainContext);
    this is particularly useful when you want to integrate your code with an
    **external main loop**:
-
-
           local GLib = require("lgi").GLib
           -- Set up the code, then do
           local ctx = GLib.MainLoop():get_context()
@@ -95,16 +80,11 @@ can be achieved in two ways:
           if ctx:iteration(true) == true then
             print("something changed here too!")
           end
-
 --------
-
   **NOTE**
-
   If you use the Awesome Window Manager, the code will be already running
   inside a main loop.
-
 --------
-
 @table Proxy
 @usage
 p = require("dbus_proxy")
@@ -116,20 +96,16 @@ proxy = p.Proxy:new(
       path = "/com/example/objectPath"
     }
 )
-
 res, err = proxy:SomeMethod()
 -- Check whether an error occurred.
 if not res and err then
     print("Error:", err)
     print("Error code:", err.code)
 end
-
 proxy:SomeMethodWithArguments("hello", 123)
 proxy.SomeProperty
-
 -- Asynchronous method calls are also supported, they have the "Async"
 -- suffix. For example:
-
 local function callback_fn(proxy, context, success, failure)
   if failure ~= nil then  -- error from the DBus Method
     print("Error:", failure)
@@ -138,17 +114,13 @@ local function callback_fn(proxy, context, success, failure)
     context.failure = failure
     return
   end
-
   -- add the data from the DBus method to the context
   context.success = success
 end
-
 local my_context = {call_id = "my-id"}
 some_proxy:SomeMethodWithArgumentsAsync(callback_fn, my_context, "hello", 123)
-
 -- Do something else while waiting for the callback to be called with the
 -- result
-
 ]]
 local Proxy = {}
 
@@ -234,8 +206,8 @@ local function call_async(proxy, interface, method, user_callback, context, args
     DBusCallFlags.NONE,
     _DEFAULT_TIMEOUT,
     nil,
-    function(receiver_proxy, res)
-      local out, err = receiver_proxy:call_finish(res)
+    function(_proxy, res)
+      local out, err = _proxy:call_finish(res)
 
       if not out and err then
           user_callback(proxy, context, out, err)
@@ -412,6 +384,7 @@ local function generate_fields(proxy)
     --     proxy.name, err or "<unknown>", err.code or "<unknown>"
     --   )
     -- )
+    return
   end
 
   local node = DBusNodeInfo.new_for_xml(xml_data_str)
@@ -485,19 +458,15 @@ local meta = {
 }
 
 --[[-- Connect a callback function to a signal.
-
 @param[type=function] callback a callback function to be called.  The proxy
 object itself and the parameters from the signal as (simple lua types) will be
 passed to the callback when the signal is emitted
-
 @param[type=string] signal_name the name of the signal
-
 @tparam[opt] string sender_name the name of the sender.  This may have the form
 of a well known name (e.g. `"org.freedesktop.DBus"`) or a specific connection
 name ( e.g. `":1.113"`).  See also the [Bus Names section of the DBus
 tutorial](https://dbus.freedesktop.org/doc/dbus-tutorial.html#bus-names).  If
 specified, only signals from this sender will be taken into account.
-
 @usage
 proxy:connect_signal(
   function (p, x, y)
@@ -507,7 +476,7 @@ proxy:connect_signal(
   "SomeSignalName"
 )
 ]]
-function Proxy:connect_signal(callback, signal_name, sender_name)
+function Proxy:connect_signal(signal_name, callback, sender_name)
 
   if not self.signals[signal_name] then
     error(string.format("Invalid signal: %s", signal_name))
@@ -527,7 +496,6 @@ function Proxy:connect_signal(callback, signal_name, sender_name)
 end
 
 --[[-- Call a function when the properties of the proxy object change.
-
 @param[type=function] callback a function that will be called when the
  properties change. The callback will receive the proxy object itself and two
  tables: `changed_properties` (a table where the keys are the properties that
@@ -535,7 +503,6 @@ end
  containg the names of the invalidated properties).  Either may be empty.  The
  local cache has already been updated when the signal is emitted, so the
  properties on the object will be up-to-date
-
 @usage
 proxy:on_properties_changed(function (p, changed, invalidated)
     assert(p == proxy)
@@ -550,7 +517,6 @@ proxy:on_properties_changed(function (p, changed, invalidated)
     end
     print("******")
 end)
-
 ]]
 function Proxy:on_properties_changed(callback)
   self._proxy.on_g_properties_changed = function(_, changed, invalidated)
@@ -560,20 +526,15 @@ function Proxy:on_properties_changed(callback)
 end
 
 --[[-- Create a new proxy object
-
 @param[type=table] opts table that specifies what DBus object should be
 proxied.
 The `opts` table should have the following fields:
-
   - `bus`: a DBus connection from the @{Bus} table
   - `interface`: a (**string**) representing the interface name
   - `name`: a (**string**) representing the Bus name
   - `path`: a (**string**) representing the object path
   - `flags`: one of the [`lgi.Gio.DBusProxyFlags`](https://developer.gnome.org/gio/2.50/GDBusProxy.html#GDBusProxyFlags); defaults to `lgi.Gio.DBusProxyFlags.NONE` *(optional)*
-
-
 @return a new proxy object
-
 ]]
 function Proxy:new(opts)
 
