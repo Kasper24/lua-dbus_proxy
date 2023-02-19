@@ -15,7 +15,7 @@
 ---  @submodule dbus_proxy
 local string = string
 local table = table
-local unpack = unpack or table.unpack -- luacheck: globals unpack
+local unpack = unpack or table.unpack -- luacheck: globals unpack (compatibility with Lua 5.1)
 
 local lgi = require("lgi")
 
