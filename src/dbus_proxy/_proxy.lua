@@ -344,8 +344,9 @@ local function generate_accessor(property)
     end
   else
     accessor.getter =  function ()
-      error(string.format("Property '%s' is not readable",
-                          property.name))
+      gdebug.print_warning(string.format("Property '%s' is not readable", property.name))
+      -- error(string.format("Property '%s' is not readable",
+      --                     property.name))
     end
   end
 
@@ -355,8 +356,9 @@ local function generate_accessor(property)
     end
   else
     accessor.setter =  function ()
-      error(string.format("Property '%s' is not writable",
-                          property.name))
+      gdebug.print_warning(string.format("Property '%s' is not writable", property.name))
+      -- error(string.format("Property '%s' is not writable",
+      --                     property.name))
     end
   end
 
@@ -479,7 +481,8 @@ proxy:connect_signal(
 function Proxy:connect_signal(signal_name, callback, sender_name)
 
   if not self.signals[signal_name] then
-    error(string.format("Invalid signal: %s", signal_name))
+    gdebug.print_warning(string.format("Invalid signal: %s", signal_name))
+    -- error(string.format("Invalid signal: %s", signal_name))
   end
 
   self._proxy.on_g_signal = function(_, sender, signal, params)
@@ -547,7 +550,8 @@ function Proxy:new(opts)
     opts.interface)
 
   if err then
-    error(err)
+    gdebug.print_warning(err)
+    -- error(err)
   end
 
   local o = {}
