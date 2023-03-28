@@ -551,6 +551,7 @@ function Proxy:new(opts)
 
   if err then
     gdebug.print_warning(err)
+    return nil
     -- error(err)
   end
 
